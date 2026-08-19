@@ -123,14 +123,12 @@ void onTimerStartUp()
 
 void pomodoroCycle(workPeriod, shortBreakPeriod, LongBreakPeriod, \isButton2paused\) // When button two is on, and timer should be running.
 {
-  // Set LED number to 1
-  // 
+  // Set cycleNumber to work1
   currentPomoPeriodMillis = millis();
   if (currentPomoPeriodMillis - startPomoPeriodMillis >= workPeriod) {
     startPomoPeriodMillis = currentPomoPeriodMillis;
-    // Ring bell with selected ringtone
-    // Increase LED number by 1
-    // Change LED function to blinking
+    // Set cycleNumber to break1
+    
 }
 
 }
