@@ -137,17 +137,39 @@ void onTimerStartUp()
   pomodoroCycle(workPeriod, shortBreakPeriod, LongBreakPeriod, \isButton2paused\);
 }
 
-void pomodoroCycle(workPeriod, shortBreakPeriod, LongBreakPeriod, \isButton2paused\) // When button two is on, and timer should be running.
+void pomodoroCycle(unsigned long workPeriod, unsigned long shortBreakPeriod, unsigned long LongBreakPeriod, enum pomodoroState, \isButton2paused\) // When button two is on, and timer should be running.
 {
-  // Set cycleNumber to work1
-  currentPomoPeriodMillis = millis();
-  if (currentPomoPeriodMillis - startPomoPeriodMillis >= workPeriod) {
-    startPomoPeriodMillis = currentPomoPeriodMillis;
-    // Set cycleNumber to break1
-    
-}
+  pomodoroState cycle = WORK_1;
+  switch(cycle) {
+    case WORK_1:
+      updateLED(cycle, ledInterval);
+      currentPomoPeriodMillis = millis();
+      if (currentPomoPeriodMillis - startPomoPeriodMillis >= workPeriod) { // Waiting for work period to end.
+        startPomoPeriodMillis = currentPomoPeriodMillis;
+        //--> Ring Buzzer function.
+        pomodoroState cycle = BREAK_1;
+      }
+      break;
+    case BREAK_1:
+      updateLED(cycle, ledInterval);
+      currentPomoPeriodMillis = millis();
+      if (currentPomoPeriodMillis - startPomoPeriodMillis >= shortBreakPeriod) { // Waiting for break period to end.
+        startPomoPeriodMillis = currentPomoPeriodMillis;
+        //--> Ring Buzzer function.
+        pomodoroState cycle = WORK_2;
+      }
+      break;
+    case WORK_2:
+      updateLED(cycle, ledInterval);
+      currentPomoPeriodMillis = millis();
+      if (currentPomoPeriodMillis - startPomoPeriodMillis >= workPeriod) { // Waiting for work period to end.
+        startPomoPeriodMillis = currentPomoPeriodMillis;
+        //--> Ring Buzzer function.
+        pomodoroState cycle = BREAK_2;
+      }
+      break;
 
-}
+  }
 
 void DisplayAndMultiplex()
 //Turn off both MOSFETs (blank)
