@@ -44,6 +44,10 @@ unsigned long startPomoPeriodMillis;
 unsigned long currentPomoPeriodMillis;
  
 
+// Button logic variables 
+
+const unsigned long HOLD_TIME = 2000;
+const unsigned long DEBOUNCE_TIME = 50;
 
 
 // 9 - Shift register variables
@@ -62,15 +66,15 @@ byte nine  = B11110110;
 // Defines Pomdoro State for LED and Buzzer
 
 enum PomodoroState {
-  WORK_1,  // LED 0 solid
-  BREAK_1, // LED 0 blinking
-  WORK_2,  // LED 1 solid
-  BREAK_2, // LED 1 blinking
-  WORK_3,  // LED 2 solid
-  BREAK_3, // LED 2 blinking
-  WORK_4,  // LED 3 solid
-  BREAK_4, // LED 3 blinking
-  IDLE     // All LEDs off
+  WORK_1,  
+  BREAK_1, 
+  WORK_2,  
+  BREAK_2, 
+  WORK_3,  
+  BREAK_3, 
+  WORK_4,  
+  BREAK_4, 
+  IDLE     
 };
 
 
@@ -106,16 +110,13 @@ startPomoPeriodMillis = millis();
 
 void loop() {
   // Reading states of buttons
-  buttonState1 = digitalRead(buttonPin1);
   buttonState2 = digitalRead(buttonPin2);
   buttonState3 = digitalRead(buttonPin3);    
 }
-<<<<<<< HEAD
 // LED function - Done [Q]
 // Pomodoro Cycle
-=======
 
->>>>>>> 63d298b7f57e45a9052b94c58ba24f5f4d7d7df7
+
 // Work cycle
 // break cycle
 // Long break cycle
@@ -159,11 +160,96 @@ void DisplayAndMultiplex()
 
 
 
+void button1()
+{
+
+  bool isPressing = false;
+  bool hold = false;
 
 
-<<<<<<< HEAD
-void blinkLed(int thisLed, int ledInterval) // 10 - LED light-up function, takes led number and desired flash interval
-=======
+  buttonState1 = digitalRead(buttonPin1);
+
+  if (buttonState1 == LOW && !isPressing) {
+    pressedTime = millis()
+    isPressing = true;
+    hold = false;
+  }
+  if (buttonstate1 == LOW && isPressing && !hold) {
+    long pressDuration = millis() - pressedTime;
+  } if (pressDuration >= HOLD_TIME) {
+    // Button 1 Hold function
+    hold = true;
+  }
+
+  if (buttonState1 == HIGH && isPressing) {
+    releasedTime = millis()
+    long totalPressDuration = releasedTime - pressedTime;
+    isPressing = false;
+  } if (totalPressDuration > DEBOUNCE_TIME && !hold) {
+    // Button 1 Press function
+  }
+}
+
+void button2()
+{
+
+  bool isPressing = false;
+  bool hold = false;
+
+  buttonState2 = digitalRead(buttonPin1);
+
+  if (buttonState2 == LOW && !isPressing) {
+    pressedTime = millis()
+    isPressing = true;
+    hold = false;
+  }
+  if (buttonstate2 == LOW && isPressing && !hold) {
+    long pressDuration = millis() - pressedTime;
+  } if (pressDuration >= HOLD_TIME) {
+    // Button 2 Hold function
+    hold = true;
+  }
+
+  if (buttonState2 == HIGH && isPressing) {
+    releasedTime = millis()
+    long totalPressDuration = releasedTime - pressedTime;
+    isPressing = false;
+  } if (totalPressDuration > DEBOUNCE_TIME && !hold) {
+    // Button 2 Press function
+  }
+}
+
+
+void button3()
+{
+
+  bool isPressing = false;
+  bool hold = false;
+
+  buttonState3 = digitalRead(buttonPin1);
+
+  if (buttonState3 == LOW && !isPressing) {
+    pressedTime = millis()
+    isPressing = true;
+    hold = false;
+  }
+  if (buttonstate3 == LOW && isPressing && !hold) {
+    long pressDuration = millis() - pressedTime;
+  } if (pressDuration >= HOLD_TIME) {
+    // Button 3 Hold function
+    hold = true;
+  }
+
+  if (buttonState3 == HIGH && isPressing) {
+    releasedTime = millis()
+    long totalPressDuration = releasedTime - pressedTime;
+    isPressing = false;
+  } if (totalPressDuration > DEBOUNCE_TIME && !hold) {
+    // Button 3 Press function
+  }
+}
+
+
 // LED function - Done [Q]
 
 void turnOnLED(int thisLed)
@@ -176,7 +262,6 @@ void turnOffLED(int thisLed) {
 }
 
 void blinkLed(int led_index int thisLed, int ledInterval) // 10 - LED light-up function, takes led number and desired flash interval
->>>>>>> 63d298b7f57e45a9052b94c58ba24f5f4d7d7df7
 // How do we make this only flash for period of break? If statement in break.
 {
   unsigned long currentMillis = millis();
@@ -261,6 +346,7 @@ void updateLED(PomodoroState current_state, int ledInterval)
   }
   
 }
+
 
 
 // Changing time function
