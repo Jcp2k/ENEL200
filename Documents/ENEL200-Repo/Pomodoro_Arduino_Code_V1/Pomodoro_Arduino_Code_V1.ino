@@ -29,11 +29,11 @@ const int buzzPin = 2;
 int buttonState1 = 0;
 int buttonState2 = 0;
 int buttonState3 = 0;
-int buttonState4 = 0;
 
 // 10 - LED variables
 unsigned long previousMillisLED = 0;
 int ledState = LOW;
+int ledinterval = 500; 
 
 // 9 - Shift register variables
 // binary notation for display numbers
@@ -48,6 +48,19 @@ byte seven = B01000110;
 byte eight = B11111110;
 byte nine  = B11110110;
 
+// Defines Pomdoro State for LED and Buzzer
+
+enum PomodoroState {
+  WORK_1,  // LED 0 solid
+  BREAK_1, // LED 0 blinking
+  WORK_2,  // LED 1 solid
+  BREAK_2, // LED 1 blinking
+  WORK_3,  // LED 2 solid
+  BREAK_3, // LED 2 blinking
+  WORK_4,  // LED 3 solid
+  BREAK_4, // LED 3 blinking
+  IDLE     // All LEDs off
+};
 
 
 void setup() {
@@ -82,11 +95,9 @@ void loop() {
   // Reading states of buttons
   buttonState1 = digitalRead(buttonPin1);
   buttonState2 = digitalRead(buttonPin2);
-  buttonState3 = digitalRead(buttonPin3);
-  buttonState4 = digitalRead(buttonPin4);
-    
+  buttonState3 = digitalRead(buttonPin3);    
 }
-// LED function - Done [Q]
+
 // Work cycle
 // break cycle
 // Long break cycle
@@ -111,21 +122,104 @@ Void DisplayAndMultiplex()
 
 // button press function
 
-Void blinkLed(int thisLed, int ledInterval) // 10 - LED light-up function, takes led number and desired flash interval
+
+// LED function - Done [Q]
+
+void turnOnLED(int thisLed)
+{
+  digitalWrite(thisLed, HIGH);
+}
+
+void turnOffLED(int thisLed) {
+  digitalWrite(thisLed, LOW);
+}
+
+void blinkLed(int led_index int thisLed, int ledInterval) // 10 - LED light-up function, takes led number and desired flash interval
 // How do we make this only flash for period of break? If statement in break.
 {
   unsigned long currentMillis = millis();
-  if (currentMillis - previousMillisLED >= ledInterval) {
-    previousMillisLED = currentMillis;
+  if (currentMillis - previousMillisLED[led_index] >= ledInterval) {
+    previousMillisLED[led_index] = currentMillis;
     
-    if (ledState == LOW) {
-      ledState = HIGH;
+    if (ledState[led_index] == LOW) {
+      ledState[led_index] = HIGH;
     } else {
-      ledState = LOW;
+      ledState[led_index] = LOW;
     }
-    digitalWrite(thisLed, ledState);
+    digitalWrite(thisLed, ledState[led_index]);
   }
 }
+
+
+// updateLED helper function 
+
+void updateLED(PomodoroState current_state, int ledInterval)
+{
+  int led_index = -1;
+  bool isBlinkingPhase = false;
+
+  switch(current_state) {
+    case WORK_1:
+      turnOnLED(ledPin1);   
+      turnOffLED(ledPin2);  
+      turnOffLED(ledPin3);
+      turnOffLED(ledPin4);
+      break;
+    case BREAK_1:
+      blinkLed(0, ledPin1, ledInterval); 
+      turnOffLED(ledPin2);               
+      turnOffLED(ledPin3);
+      turnOffLED(ledPin4);
+      break;
+    case WORK_2:
+      turnOnLED(ledPin1);   
+      turnOnLED(ledPin2);  
+      turnOffLED(ledPin3);
+      turnOffLED(ledPin4);
+      break;
+    case BREAK_2:
+      blinkLed(0, ledPin1, ledInterval); 
+      blinkLed(1, ledPin2, ledInterval);           
+      turnOffLED(ledPin3);
+      turnOffLED(ledPin4);
+      break;
+    case WORK_3:
+      turnOnLED(ledPin1);   
+      turnOnLED(ledPin2);  
+      turnOnLED(ledPin3);
+      turnOffLED(ledPin4);
+      break;
+    case BREAK_3:
+      blinkLed(0, ledPin1, ledInterval); 
+      blinkLed(1, ledPin2, ledInterval);           
+      blinkLed(2, ledPin3, ledInterval); 
+      turnOffLED(ledPin4);
+      break;
+
+    case WORK_4:
+      turnOnLED(ledPin1);   
+      turnOnLED(ledPin2);  
+      turnOnLED(ledPin3);
+      turnOnLED(ledPin4);
+      break;
+    case BREAK_4:
+      blinkLed(0, ledPin1, ledInterval); 
+      blinkLed(1, ledPin2, ledInterval);           
+      blinkLed(2, ledPin3, ledInterval); 
+      blinkLed(3, ledPin4, ledInterval); 
+      break;
+
+    case IDLE:
+      turnOffLED(ledPin1);
+      turnOffLED(ledPin2);
+      turnOffLED(ledPin3);
+      turnOffLED(ledPin4);
+      break;
+
+  }
+  
+}
+
 
 // Changing time function
 
