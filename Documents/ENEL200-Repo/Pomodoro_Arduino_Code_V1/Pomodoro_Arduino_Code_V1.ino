@@ -35,6 +35,17 @@ int buttonState4 = 0;
 unsigned long previousMillisLED = 0;
 int ledState = LOW;
 
+// millisecond to minute converter constant;
+
+const unsigned int millisecondsToMinutes = 60000;
+// Pomodoro function global variables
+
+unsigned long startPomoPeriodMillis;
+unsigned long currentPomoPeriodMillis;
+ 
+
+
+
 // 9 - Shift register variables
 // binary notation for display numbers
 byte zero  = B01111110;
@@ -75,7 +86,9 @@ void setup() {
   // Initialise buzzer pin
   pinMode(buzPin, OUPUT);
 
-  
+// Initialising PomodoroCycle Function
+startPomoPeriodMillis = millis();
+
 }
 
 void loop() {
@@ -87,6 +100,7 @@ void loop() {
     
 }
 // LED function - Done [Q]
+// Pomodoro Cycle
 // Work cycle
 // break cycle
 // Long break cycle
@@ -96,9 +110,32 @@ void loop() {
 // changing time period
 // converting time to tens and ones digits
 // multiplexing function 74HC164
-Void DisplayAndMultiplex()
+// button press function
 
 
+void onTimerStartUp()
+{
+  unsigned long workPeriod = 25 * millisecondsToMinutes;
+  unsigned long shortBreakPeriod = 5 * millisecondsToMinutes;
+  unsigned long LongBreakPeriod = 15 * millisecondsToMinutes;
+  pomodoroCycle(workPeriod, shortBreakPeriod, LongBreakPeriod, \isButton2paused\);
+}
+
+void pomodoroCycle(workPeriod, shortBreakPeriod, LongBreakPeriod, \isButton2paused\) // When button two is on, and timer should be running.
+{
+  // Set LED number to 1
+  // 
+  currentPomoPeriodMillis = millis();
+  if (currentPomoPeriodMillis - startPomoPeriodMillis >= workPeriod) {
+    startPomoPeriodMillis = currentPomoPeriodMillis;
+    // Ring bell with selected ringtone
+    // Increase LED number by 1
+    // Change LED function to blinking
+}
+
+}
+
+void DisplayAndMultiplex()
 //Turn off both MOSFETs (blank)
 //Shift in digit 1's 7-bit segment pattern
 //Turn on digit 1's MOSFET, hold ~1-5 ms
@@ -109,9 +146,9 @@ Void DisplayAndMultiplex()
 
 
 
-// button press function
 
-Void blinkLed(int thisLed, int ledInterval) // 10 - LED light-up function, takes led number and desired flash interval
+
+void blinkLed(int thisLed, int ledInterval) // 10 - LED light-up function, takes led number and desired flash interval
 // How do we make this only flash for period of break? If statement in break.
 {
   unsigned long currentMillis = millis();
