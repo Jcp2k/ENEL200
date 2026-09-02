@@ -33,41 +33,44 @@ int buttonState1 = 0;
 int buttonState2 = 0;
 int buttonState3 = 0;
 
-// 10 - LED variables
-unsigned long previousMillisLED = 0;
-int ledState = LOW;
-int ledinterval = 500; 
+// LED variables
+unsigned long previousMillisLED[4] = {0, 0, 0, 0};
+int ledState[4] = {LOW, LOW, LOW, LOW};
+int ledInterval = 500;
 
-// millisecond to minute converter constant;
-
+// millisecond to minute converter constant
 const unsigned int millisecondsToMinutes = 60000;
-// Pomodoro function global variables
 
+// Pomodoro function global variables
 unsigned long startPomoPeriodMillis;
 unsigned long currentPomoPeriodMillis;
  
-
 // Button logic variables 
-
 const unsigned long HOLD_TIME = 2000;
 const unsigned long DEBOUNCE_TIME = 50;
 
+bool isTimerRunning = false;
+bool inSettingsMenu = false;
+int workPeriodMinutes = 25;
+int displayValue = 25;
 
-// 9 - Shift register variables
-// binary notation for display numbers
-byte zero  = B01111110;
-byte one   = B00000110;
-byte two   = B11011010;
-byte three = B11010110;
-byte four  = B10100110;
-byte five  = B11110100;
-byte six   = B11111100;
-byte seven = B01000110;
-byte eight = B11111110;
-byte nine  = B11110110;
+int buzzerSoundIndex = 1;
 
-// Defines Pomdoro State for LED and Buzzer
+// 7 Segment display number map
+const uint8_t segmentMap[10][8] = {
+  {0, 1, 1, 1, 0, 1, 1, 1}, // 0
+  {0, 0, 0, 1, 0, 1, 0, 0}, // 1
+  {1, 0, 1, 1, 0, 0, 1, 1}, // 2
+  {1, 0, 1, 1, 0, 1, 1, 0}, // 3
+  {1, 1, 0, 1, 0, 1, 0, 0}, // 4
+  {1, 1, 1, 0, 0, 1, 1, 0}, // 5
+  {1, 1, 1, 0, 0, 1, 1, 1}, // 6
+  {0, 0, 1, 1, 0, 1, 0, 0}, // 7
+  {1, 1, 1, 1, 0, 1, 1, 1}, // 8
+  {1, 1, 1, 1, 0, 1, 0, 0}  // 9
+};
 
+// Defines Pomodoro state for LED and buzzer
 enum PomodoroState {
   WORK_1,  
   BREAK_1, 
@@ -77,19 +80,31 @@ enum PomodoroState {
   BREAK_3, 
   WORK_4,  
   BREAK_4, 
-  IDLE   // Redundant??  
+  IDLE     
 };
 
-// --- Song Data ---
+// State Machine Tracker
+PomodoroState cycle = WORK_1;
+
+// --- Ringtone structures and data ---
+enum Ringtones {
+  MISSION_IMPOSSIBLE = 0,
+  CHARIOTS_FIRE,
+  FINAL_COUNTDOWN,
+  STAR_WARS,
+  TAKE_ON_ME,
+  SIMPLE_SIGNAL
+};
+
 const char mission_imp[] PROGMEM = "Mission Imp:d=16,o=5,b=125:32d,32d#,32d,32d#,32d,32d#,32d,32d#,32d,32d,32d#,32e,32f,32f#,32g,g,8p,g,8p,a#,p,c6,p,g,8p,g,8p,f,p,f#,p,g,8p,g,8p,a#,p,c6,p,g,8p,g,8p,f,p,f#,p";
 const char chariots_fire[] PROGMEM = "Chariots Fire:o=5,d=16,b=85,b=85:8c#,f#.,g#.,a#.,4g#,4f,8p,8c#,f#.,g#.,a#.,2g#,8p,8c#,f#.,g#.,a#.,4g#,4f,8p,8f,f#.,f.,c#.,2c#";
 const char final_countdown[] PROGMEM = "Final Countdown:o=5,d=16,b=85,b=85:8c#,f#.,g#.,a#.,4g#,4f,8p,8c#,f#.,g#.,a#.,2g#,8p,8c#,f#.,g#.,a#.,4g#,4f,8p,8f,f#.,f.,c#.,2c#";
 const char star_wars[] PROGMEM = "Star Wars:o=6,d=8,b=180,b=180:f5,f5,f5,2a#5.,2f.,d#,d,c,2a#.,4f.,d#,d,c,2a#.,4f.,d#,d,d#,2c,4p,f5,f5,f5,2a#5.,2f.,d#,d,c,2a#.,4f.,d#,d,c,2a#.,4f.,d#,d,d#,2c";
 const char take_on_me[] PROGMEM = "Take On Me:o=5,d=8,b=160,b=160:f#,f#,f#,d,p,b4,p,e,p,e,p,e,g#,g#,a,b,a,a,a,e,p,d,p,f#,p,f#,p,f#,e,e,f#,e,f#,f#,f#,d,p,b4,p,e,p,e,p,e,g#,g#,a,b,a,a,a,e,p,d,p,f#,p,f#,p,f#,e,e5";
 const char simple_signal[] PROGMEM = "Signal:d=16,o=6,b=180:c,p,c,g,p,g,4c7";
-char ringtone[] = simple_signal; 
 
-
+const char* ringtone = simple_signal;
+Ringtones soundtrack = SIMPLE_SIGNAL;
 
 void setup() {
   //----- Pin initialisation-----
@@ -97,7 +112,6 @@ void setup() {
   pinMode(buttonPin1, INPUT);
   pinMode(buttonPin2, INPUT); 
   pinMode(buttonPin3, INPUT);
-  pinMode(buttonPin4, INPUT);
 
   // Initialise seven segment display transistor switches
   pinMode(transPin1, OUTPUT);
@@ -114,62 +128,50 @@ void setup() {
   pinMode(ledPin4, OUTPUT);
 
   // Initialise buzzer pin
-  pinMode(buzzPin, OUPUT);
+  pinMode(buzzPin, OUTPUT);
 
-// Initialising PomodoroCycle Function
-startPomoPeriodMillis = millis();
+  // Initialising PomodoroCycle Function
+  startPomoPeriodMillis = millis();
 
+  Ringtones soundtrack;
 }
 
 void loop() {
   // Reading states of buttons
-  buttonState2 = digitalRead(buttonPin2);
-  buttonState3 = digitalRead(buttonPin3);    
+  button1();
+  button2();
+  button3();
+
+  DisplayAndMultiplex(displayValue);    
 }
-// Bell ringing function - Done - Callum
-// multiplexing function 74HC164 - Done - Jackson
-// LED function - Done - Callum - [Have improvements]
-// Pomodoro Cycle - Done - Callum - [Have improvements]
-  // Work cycle
-  // break cycle
-  // Long break cycle 
+// LED function - Done 
+// Pomodoro Cycle - Done
 
 
-// git status --> red
-// git add .
-// 
-
-
+// Work cycle
+// break cycle
+// Long break cycle
+// Bell ringing function
 // Bell mute function
 // Changing soundtrack function
 // changing time period
 // converting time to tens and ones digits
+// multiplexing function 74HC164
 // button press function
+void pomodoroCycle(unsigned long workPeriod, unsigned long shortBreakPeriod, unsigned long LongBreakPeriod, enum PomodoroState, bool isMuted);
 
-//
-void onTimerStartUp()
-{
-  unsigned long workPeriod = 25 * millisecondsToMinutes;
-  unsigned long shortBreakPeriod = 5 * millisecondsToMinutes;
-  unsigned long LongBreakPeriod = 15 * millisecondsToMinutes;
-  pomodoroCycle(workPeriod, shortBreakPeriod, LongBreakPeriod, \isButton2paused\);
-}
-
-
-void ringTimer(ringtone)
+void ringTimer(const char *ringtone)
 {
   static bool ringtoneDone = false;
   if (!ringtoneDone) {
-    anyrtttl::nonblocking::beginProgMem(BUZZER_PIN, mission_imp);
+    anyrtttl::nonblocking::beginProgMem(buzzPin, *ringtone);
     ringtoneDone = true;
   } else {
     anyrtttl::nonblocking::play();
   }  
 }
 
-
-// ledInterval as a bool just so we know if want LEDs blinking or not, since interval won't change.
-void pomodoroCycle(unsigned long workPeriod, unsigned long shortBreakPeriod, unsigned long LongBreakPeriod, enum pomodoroState, \isButton2paused\) // When button two is on, and timer should be running.
+void pomodoroCycle(unsigned long workPeriod, unsigned long shortBreakPeriod, unsigned long longBreakPeriod, enum PomodoroState, bool isMuted) // When button two is on, and timer should be running.
 {
   PomodoroState cycle = WORK_1;
   switch(cycle) {
@@ -178,7 +180,9 @@ void pomodoroCycle(unsigned long workPeriod, unsigned long shortBreakPeriod, uns
       currentPomoPeriodMillis = millis();
       if (currentPomoPeriodMillis - startPomoPeriodMillis >= workPeriod) { // Waiting for work period to end.
         startPomoPeriodMillis = currentPomoPeriodMillis;
-        ringTimer(ringtone);
+        if (!isMuted) {
+          ringTimer(ringtone);
+        }
         PomodoroState cycle = BREAK_1;
       }
       break;
@@ -187,7 +191,9 @@ void pomodoroCycle(unsigned long workPeriod, unsigned long shortBreakPeriod, uns
       currentPomoPeriodMillis = millis();
       if (currentPomoPeriodMillis - startPomoPeriodMillis >= shortBreakPeriod) { // Waiting for break period to end.
         startPomoPeriodMillis = currentPomoPeriodMillis;
-        ringTimer(ringtone);
+        if (!isMuted) {
+          ringTimer(ringtone);
+        }
         PomodoroState cycle = WORK_2;
       }
       break;
@@ -196,7 +202,9 @@ void pomodoroCycle(unsigned long workPeriod, unsigned long shortBreakPeriod, uns
       currentPomoPeriodMillis = millis();
       if (currentPomoPeriodMillis - startPomoPeriodMillis >= workPeriod) { // Waiting for work period to end.
         startPomoPeriodMillis = currentPomoPeriodMillis;
-        ringTimer(ringtone);
+        if (!isMuted) {
+          ringTimer(ringtone);
+        }
         PomodoroState cycle = BREAK_2;
       }
       break;
@@ -205,7 +213,9 @@ void pomodoroCycle(unsigned long workPeriod, unsigned long shortBreakPeriod, uns
       currentPomoPeriodMillis = millis();
       if (currentPomoPeriodMillis - startPomoPeriodMillis >= shortBreakPeriod) { // Waiting for work period to end.
         startPomoPeriodMillis = currentPomoPeriodMillis;
-        ringTimer(ringtone);
+        if (!isMuted) {
+          ringTimer(ringtone);
+        }
         PomodoroState cycle = WORK_3;
       }
       break;
@@ -214,16 +224,20 @@ void pomodoroCycle(unsigned long workPeriod, unsigned long shortBreakPeriod, uns
       currentPomoPeriodMillis = millis();
       if (currentPomoPeriodMillis - startPomoPeriodMillis >= workPeriod) { // Waiting for work period to end.
         startPomoPeriodMillis = currentPomoPeriodMillis;
-        ringTimer(ringtone);
+        if (!isMuted) {
+          ringTimer(ringtone);
+        }
         PomodoroState cycle = BREAK_3;
       }
-      break;      
+      break;  
     case BREAK_3:
       updateLED(cycle, ledInterval);
       currentPomoPeriodMillis = millis();
       if (currentPomoPeriodMillis - startPomoPeriodMillis >= shortBreakPeriod) { // Waiting for work period to end.
         startPomoPeriodMillis = currentPomoPeriodMillis;
-        ringTimer(ringtone);
+        if (!isMuted) {
+          ringTimer(ringtone);
+        }
         PomodoroState cycle = WORK_4;
       }
       break;
@@ -232,7 +246,9 @@ void pomodoroCycle(unsigned long workPeriod, unsigned long shortBreakPeriod, uns
       currentPomoPeriodMillis = millis();
       if (currentPomoPeriodMillis - startPomoPeriodMillis >= workPeriod) { // Waiting for work period to end.
         startPomoPeriodMillis = currentPomoPeriodMillis;
-        ringTimer(ringtone);
+        if (!isMuted) {
+          ringTimer(ringtone);
+        }
         PomodoroState cycle = BREAK_4;
       }
       break;
@@ -241,115 +257,226 @@ void pomodoroCycle(unsigned long workPeriod, unsigned long shortBreakPeriod, uns
       currentPomoPeriodMillis = millis();
       if (currentPomoPeriodMillis - startPomoPeriodMillis >= longBreakPeriod) { // Waiting for work period to end.
         startPomoPeriodMillis = currentPomoPeriodMillis;
-        ringTimer(ringtone);
+        if (!isMuted) {
+          ringTimer(ringtone);
+        }
         PomodoroState cycle = WORK_1;
       }
       break;
     default:
-    // Pause case?
-    ringTimer(ringtone);
-    PomodoroState cycle = WORK_1;
-
+      // Pause case?
+      if (!isMuted) {
+        ringTimer(ringtone);
+      }
+      PomodoroState cycle = WORK_1;
   }
-
-void DisplayAndMultiplex()
-//Turn off both MOSFETs (blank)
-//Shift in digit 1's 7-bit segment pattern
-//Turn on digit 1's MOSFET, hold ~1-5 ms
-//Turn off digit 1's MOSFET
-//Shift in digit 2's 7-bit segment pattern
-//Turn on digit 2's MOSFET, hold ~1-5 ms
-//Loop
+}
 
 
-
-void button1()
+void DisplayAndMultiplex(int valueToShow) 
 {
+  int tens = valueToShow / 10;
+  int ones = valueToShow % 10;
 
-  bool isPressing = false;
-  bool hold = false;
+  // --- Display Digit 1 (Tens) ---
+  digitalWrite(transPin1, LOW);  // Ensure Ones digit is OFF
+  shiftPattern(tens);                 // Send Tens bits to shift register
+  digitalWrite(transPin2, HIGH); // Turn ON Tens digit
+  delayMicroseconds(2000);            // Leave it on for 2ms
 
+  // --- Display Digit 2 (Ones) ---
+  digitalWrite(transPin1, LOW);  // Turn OFF Tens digit
+  shiftPattern(ones);                 // Send Ones bits to shift register
+  digitalWrite(transPin2, HIGH); // Turn ON Ones digit
+  delayMicroseconds(2000);            // Leave it on for 2ms
+
+}
+
+void shiftPattern(uint8_t targetNum)
+{
+  for (int8_t i = 7; i >= 0; i--) {
+    digitalWrite(shiftRegClock, LOW);
+    digitalWrite(shiftRegData, segmentMap[targetNum][i]);
+    digitalWrite(shiftRegClock, HIGH);
+  }
+}
+
+bool button1()
+{
+  static bool isPressing = false;
+  static bool hold = false;
+  static unsigned long pressedTime = 0;
+  static unsigned long releasedTime = 0;
+  static bool isMuted = false;
+
+  unsigned long pressDuration = 0;
+  unsigned long totalPressDuration = 0;
 
   buttonState1 = digitalRead(buttonPin1);
 
-  if (buttonState1 == LOW && !isPressing) {
-    pressedTime = millis()
+  if (buttonState1 == HIGH && !isPressing) { // initialising touch
     isPressing = true;
     hold = false;
   }
-  if (buttonstate1 == LOW && isPressing && !hold) {
-    long pressDuration = millis() - pressedTime;
-  } if (pressDuration >= HOLD_TIME) {
-    // Button 1 Hold function
-    hold = true;
+  
+  if (buttonState1 == HIGH && isPressing && !hold) { // Button one is held
+    pressDuration = millis() - pressedTime;
+    if (pressDuration >= HOLD_TIME) {
+      hold = true;
+      if (isMuted) {
+        isMuted = false;
+      } else {
+        isMuted = true;
+      }
+    }
   }
 
-  if (buttonState1 == HIGH && isPressing) {
-    releasedTime = millis()
-    long totalPressDuration = releasedTime - pressedTime;
+  
+
+  if (buttonState1 == LOW && isPressing) { // button one is being pressed.
+    totalPressDuration = releasedTime - pressedTime;
     isPressing = false;
-  } if (totalPressDuration > DEBOUNCE_TIME && !hold) {
-    // Button 1 Press function
+    if (totalPressDuration > DEBOUNCE_TIME && !hold) { // Mute or unmute volume
+      
+      switch(soundtrack) {
+        case MISSION_IMPOSSIBLE:
+          ringtone = chariots_fire;
+          soundtrack = CHARIOTS_FIRE;
+          if (!isMuted) {
+            ringTimer(ringtone);
+          } 
+          break;
+        case CHARIOTS_FIRE:
+          ringtone = final_countdown;
+          soundtrack = FINAL_COUNTDOWN;
+          if (!isMuted) {
+            ringTimer(ringtone);
+          }
+          break;
+        case FINAL_COUNTDOWN:
+          ringtone = star_wars;
+          soundtrack = STAR_WARS;
+          if (!isMuted) {
+            ringTimer(ringtone);
+          }
+          break;        
+        case STAR_WARS:
+          ringtone = take_on_me;
+          soundtrack = TAKE_ON_ME;
+          if (!isMuted) {
+            ringTimer(ringtone);
+          }
+          break;
+        case TAKE_ON_ME:
+          ringtone = signal;
+          soundtrack = SIMPLE_SIGNAL;
+          if (!isMuted) {
+            ringTimer(ringtone);
+          }
+          break;
+        default:
+          ringtone = signal;
+          soundtrack = SIMPLE_SIGNAL;
+          if (!isMuted) {
+            ringTimer(ringtone);
+          }
+          break;
+      }
+    }
   }
+  return isMuted; 
 }
 
 void button2()
 {
+  static bool isPressing = false;
+  static bool hold = false;
+  static unsigned long pressedTime = 0;
+  static unsigned long releasedTime = 0;
 
-  bool isPressing = false;
-  bool hold = false;
+  unsigned long pressDuration = 0;
+  unsigned long totalPressDuration = 0;
 
-  buttonState2 = digitalRead(buttonPin1);
+  buttonState2 = digitalRead(buttonPin2);
 
-  if (buttonState2 == LOW && !isPressing) {
-    pressedTime = millis()
+  if (buttonState2 == HIGH && !isPressing) {
+    pressedTime = millis();
     isPressing = true;
     hold = false;
   }
-  if (buttonstate2 == LOW && isPressing && !hold) {
-    long pressDuration = millis() - pressedTime;
-  } if (pressDuration >= HOLD_TIME) {
-    // Button 2 Hold function
-    hold = true;
+
+  if (buttonState2 == HIGH && isPressing && !hold) {
+    pressDuration = millis() - pressedTime;
+    
+    if (pressDuration >= HOLD_TIME) {
+      // Button 2 Hold function
+      hold = true;
+      isTimerRunning = false;
+      displayValue = 25;
+      startPomoPeriodMillis = millis();
+
+      tone(buzzPin, 800, 100);
+      delay(150);
+      tone(buzzPin, 800, 100);
+
+    }
   }
 
-  if (buttonState2 == HIGH && isPressing) {
-    releasedTime = millis()
-    long totalPressDuration = releasedTime - pressedTime;
+  if (buttonState2 == LOW && isPressing) {
+    releasedTime = millis();
+    totalPressDuration = releasedTime - pressedTime;
     isPressing = false;
-  } if (totalPressDuration > DEBOUNCE_TIME && !hold) {
-    // Button 2 Press function
+
+    if (totalPressDuration > DEBOUNCE_TIME && !hold) {
+      // Button 2 Press function
+      isTimerRunning = !isTimerRunning;
+
+      if (buzzerSoundIndex != 0) {
+        tone(buzzPin, isTimerRunning ? 1500 : 700, 80);
+      }
+    }
   }
 }
 
 
 void button3()
 {
+  static bool isPressing = false;
+  static bool hold = false;
+  static unsigned long pressedTime = 0;
+  static unsigned long releasedTime = 0;
 
-  bool isPressing = false;
-  bool hold = false;
+  unsigned long pressDuration = 0;
+  unsigned long totalPressDuration = 0;
 
-  buttonState3 = digitalRead(buttonPin1);
+  buttonState3 = digitalRead(buttonPin3);
 
-  if (buttonState3 == LOW && !isPressing) {
-    pressedTime = millis()
+  if (buttonState3 == HIGH && !isPressing) {
+    pressedTime = millis();
     isPressing = true;
     hold = false;
   }
-  if (buttonstate3 == LOW && isPressing && !hold) {
-    long pressDuration = millis() - pressedTime;
-  } if (pressDuration >= HOLD_TIME) {
-    // Button 3 Hold function
-    hold = true;
+  if (buttonState3 == HIGH && isPressing && !hold) {
+    pressDuration = millis() - pressedTime;
+
+    if (pressDuration >= HOLD_TIME) {
+      // Button 3 Hold function
+      hold = true;
+    }
   }
 
-  if (buttonState3 == HIGH && isPressing) {
-    releasedTime = millis()
+  if (buttonState3 == LOW && isPressing) {
+    releasedTime = millis();
     long totalPressDuration = releasedTime - pressedTime;
+
     isPressing = false;
-  } if (totalPressDuration > DEBOUNCE_TIME && !hold) {
-    // Button 3 Press function
-  }
+
+    if (totalPressDuration > DEBOUNCE_TIME && !hold) {
+      
+      cycle = (PomodoroState)((cycle + 1) % 8);
+      startPomoPeriodMillis = millis();
+    }
+  } 
 }
 
 
@@ -364,7 +491,7 @@ void turnOffLED(int thisLed) {
   digitalWrite(thisLed, LOW);
 }
 
-void blinkLed(int led_index int thisLed, int ledInterval) // 10 - LED light-up function, takes led number and desired flash interval
+void blinkLed(int led_index, int thisLed, int ledInterval) // 10 - LED light-up function, takes led number and desired flash interval
 // How do we make this only flash for period of break? If statement in break.
 {
   unsigned long currentMillis = millis();
@@ -449,8 +576,3 @@ void updateLED(PomodoroState current_state, int ledInterval)
   }
   
 }
-
-
-
-// Changing time function
-
