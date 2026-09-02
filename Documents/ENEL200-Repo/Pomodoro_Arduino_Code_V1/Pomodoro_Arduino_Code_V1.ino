@@ -68,6 +68,21 @@ byte nine  = B11110110;
 
 // Defines Pomdoro State for LED and Buzzer
 
+
+// 7 Segment display number map
+const uint8_t segmentMap[10][8] = {
+  {0, 1, 1, 1, 0, 1, 1, 1}, // 0
+  {0, 0, 0, 1, 0, 1, 0, 0}, // 1
+  {1, 0, 1, 1, 0, 0, 1, 1}, // 2
+  {1, 0, 1, 1, 0, 1, 1, 0}, // 3
+  {1, 1, 0, 1, 0, 1, 0, 0}, // 4
+  {1, 1, 1, 0, 0, 1, 1, 0}, // 5
+  {1, 1, 1, 0, 0, 1, 1, 1}, // 6
+  {0, 0, 1, 1, 0, 1, 0, 0}, // 7
+  {1, 1, 1, 1, 0, 1, 1, 1}, // 8
+  {1, 1, 1, 1, 0, 1, 0, 0}  // 9
+};
+
 enum PomodoroState {
   WORK_1,  
   BREAK_1, 
@@ -97,7 +112,6 @@ void setup() {
   pinMode(buttonPin1, INPUT);
   pinMode(buttonPin2, INPUT); 
   pinMode(buttonPin3, INPUT);
-  pinMode(buttonPin4, INPUT);
 
   // Initialise seven segment display transistor switches
   pinMode(transPin1, OUTPUT);
@@ -253,15 +267,33 @@ void pomodoroCycle(unsigned long workPeriod, unsigned long shortBreakPeriod, uns
 
   }
 
-void DisplayAndMultiplex()
-//Turn off both MOSFETs (blank)
-//Shift in digit 1's 7-bit segment pattern
-//Turn on digit 1's MOSFET, hold ~1-5 ms
-//Turn off digit 1's MOSFET
-//Shift in digit 2's 7-bit segment pattern
-//Turn on digit 2's MOSFET, hold ~1-5 ms
-//Loop
+void DisplayAndMultiplex(int valueToShow) 
+{
+  int tens = valueToShow / 10;
+  int ones = valueToShow % 10;
 
+  // --- Display Digit 1 (Tens) ---
+  digitalWrite(PIN_DIGIT_ONES, LOW);  // Ensure Ones digit is OFF
+  shiftPattern(tens);                 // Send Tens bits to shift register
+  digitalWrite(PIN_DIGIT_TENS, HIGH); // Turn ON Tens digit
+  delayMicroseconds(2000);            // Leave it on for 2ms
+
+  // --- Display Digit 2 (Ones) ---
+  digitalWrite(PIN_DIGIT_TENS, LOW);  // Turn OFF Tens digit
+  shiftPattern(ones);                 // Send Ones bits to shift register
+  digitalWrite(PIN_DIGIT_ONES, HIGH); // Turn ON Ones digit
+  delayMicroseconds(2000);            // Leave it on for 2ms
+
+}
+
+void shiftPattern(uint8_t)
+{
+  for (int8_t i = 7; i >= 0; i--) {
+    digitalWrite(shiftRegClock, LOW);
+    digitalWrite(shiftRegData, segmentMap[targetNum][i]);
+    digitalWrite(shiftRegClock, HIGH);
+  }
+}
 
 
 void button1();
