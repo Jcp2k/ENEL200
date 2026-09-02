@@ -121,8 +121,9 @@ startPomoPeriodMillis = millis();
 
 void loop() {
   // Reading states of buttons
-  buttonState2 = digitalRead(buttonPin2);
-  buttonState3 = digitalRead(buttonPin3);    
+  button1();
+  button2();
+  button3();  
 }
 // multiplexing function 74HC164 - Done - Jackson
 // LED function - Done - Callum - [Have improvements]
@@ -156,7 +157,7 @@ void ringTimer()
 // ledInterval as a bool just so we know if want LEDs blinking or not, since interval won't change.
 void pomodoroCycle(unsigned long workPeriod, unsigned long shortBreakPeriod, unsigned long LongBreakPeriod, enum pomodoroState, \isButton2paused\) // When button two is on, and timer should be running.
 {
-  pomodoroState cycle = WORK_1;
+  PomodoroState cycle = WORK_1;
   switch(cycle) {
     case WORK_1:
       updateLED(cycle, ledInterval);
@@ -247,7 +248,7 @@ void DisplayAndMultiplex()
 
 
 
-void button1()
+void button1();
 {
 
   bool isPressing = false;
@@ -277,7 +278,7 @@ void button1()
   }
 }
 
-void button2()
+void button2();
 {
 
   bool isPressing = false;
@@ -310,30 +311,34 @@ void button2()
 void button3()
 {
 
-  bool isPressing = false;
-  bool hold = false;
+  static bool isPressing = false;
+  static bool hold = false;
 
-  buttonState3 = digitalRead(buttonPin1);
+  buttonState3 = digitalRead(buttonPin3);
 
-  if (buttonState3 == LOW && !isPressing) {
-    pressedTime = millis()
+  if (buttonState3 == HIGH && !isPressing) {
+    pressedTime = millis();
     isPressing = true;
     hold = false;
   }
-  if (buttonstate3 == LOW && isPressing && !hold) {
+  if (buttonState3 == HIGH && isPressing && !hold) {
     long pressDuration = millis() - pressedTime;
-  } if (pressDuration >= HOLD_TIME) {
+    if (pressDuration >= HOLD_TIME) {
     // Button 3 Hold function
-    hold = true;
-  }
+      hold = true;
+    }
+  } 
 
-  if (buttonState3 == HIGH && isPressing) {
-    releasedTime = millis()
+  if (buttonState3 == LOW && isPressing) {
+    releasedTime = millis();
     long totalPressDuration = releasedTime - pressedTime;
     isPressing = false;
-  } if (totalPressDuration > DEBOUNCE_TIME && !hold) {
+    if (totalPressDuration > DEBOUNCE_TIME && !hold) {
     // Button 3 Press function
-  }
+      cycle = (PomodoroState)((cycle + 1) % 8);
+      startPomoPeriodMillis = millis();
+    }
+  } 
 }
 
 
@@ -433,8 +438,6 @@ void updateLED(PomodoroState current_state, int ledInterval)
   }
   
 }
-
-
 
 // Changing time function
 
