@@ -55,6 +55,7 @@ int workPeriodMinutes = 25;
 int displayValue = 25;
 
 int buzzerSoundIndex = 1;
+<<<<<<< HEAD
 
 
 // Settings Logic 
@@ -123,11 +124,6 @@ const char simple_signal[] PROGMEM = "Signal:d=16,o=6,b=180:c,p,c,g,p,g,4c7";
 
 const char *ringtone = simple_signal;
 
-
-
-
-
-
 void setup() {
   //----- Pin initialisation-----
   // initialise button pins
@@ -178,8 +174,19 @@ void loop() {
 // converting time to tens and ones digits
 // multiplexing function 74HC164
 // button press function
-
 void pomodoroCycle(unsigned long workPeriod, unsigned long shortBreakPeriod, unsigned long LongBreakPeriod, enum PomodoroState);
+
+<<<<<<< HEAD
+void pomodoroCycle(unsigned long workPeriod, unsigned long shortBreakPeriod, unsigned long LongBreakPeriod, enum PomodoroState);
+=======
+void onTimerStartUp()
+{
+  unsigned long workPeriod = 25 * millisecondsToMinutes;
+  unsigned long shortBreakPeriod = 5 * millisecondsToMinutes;
+  unsigned long LongBreakPeriod = 15 * millisecondsToMinutes;
+  pomodoroCycle(workPeriod, shortBreakPeriod, LongBreakPeriod, cycle);
+}
+>>>>>>> da493abd558fc206c9652e22697554447820a984
 
 void ringTimer(const char *ringtone)
 {
@@ -429,6 +436,10 @@ void button3()
   }
   if (buttonState3 == HIGH && isPressing && !hold) {
     pressDuration = millis() - pressedTime;
+<<<<<<< HEAD
+=======
+
+>>>>>>> da493abd558fc206c9652e22697554447820a984
     if (pressDuration >= HOLD_TIME) {
       // Button 3 Hold function
       hold = true;
@@ -553,4 +564,4 @@ void updateLED(PomodoroState current_state, int ledInterval)
 
   }
   
-}
+
