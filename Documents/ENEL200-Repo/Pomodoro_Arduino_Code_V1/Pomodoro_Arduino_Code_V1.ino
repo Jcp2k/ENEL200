@@ -1,3 +1,6 @@
+#include <anyrtttl.h>
+#include <binrtttl.h>
+#include <pitches.h>
 
 // -----Initialising pins-----
 // Defining digital pins
@@ -78,14 +81,13 @@ enum PomodoroState {
 };
 
 // --- Song Data ---
-const char mission_imp PROGMEM = "Mission Imp:d=16,o=5,b=125:32d,32d#,32d,32d#,32d,32d#,32d,32d#,32d,32d,32d#,32e,32f,32f#,32g,g,8p,g,8p,a#,p,c6,p,g,8p,g,8p,f,p,f#,p,g,8p,g,8p,a#,p,c6,p,g,8p,g,8p,f,p,f#,p"
-const char chariots_fire PROGMEM = "Chariots fire:o=5,d=16,b=85,b=85:8c#,f#.,g#.,a#.,4g#,4f,8p,8c#,f#.,g#.,a#.,2g#,8p,8c#,f#.,g#.,a#.,4g#,4f,8p,8f,f#.,f.,c#.,2c#"
-const char final_countdown
-// Final countdown
-// star wars
-// take on me
-//
-
+const char mission_imp[] PROGMEM = "Mission Imp:d=16,o=5,b=125:32d,32d#,32d,32d#,32d,32d#,32d,32d#,32d,32d,32d#,32e,32f,32f#,32g,g,8p,g,8p,a#,p,c6,p,g,8p,g,8p,f,p,f#,p,g,8p,g,8p,a#,p,c6,p,g,8p,g,8p,f,p,f#,p";
+const char chariots_fire[] PROGMEM = "Chariots Fire:o=5,d=16,b=85,b=85:8c#,f#.,g#.,a#.,4g#,4f,8p,8c#,f#.,g#.,a#.,2g#,8p,8c#,f#.,g#.,a#.,4g#,4f,8p,8f,f#.,f.,c#.,2c#";
+const char final_countdown[] PROGMEM = "Final Countdown:o=5,d=16,b=85,b=85:8c#,f#.,g#.,a#.,4g#,4f,8p,8c#,f#.,g#.,a#.,2g#,8p,8c#,f#.,g#.,a#.,4g#,4f,8p,8f,f#.,f.,c#.,2c#";
+const char star_wars[] PROGMEM = "Star Wars:o=6,d=8,b=180,b=180:f5,f5,f5,2a#5.,2f.,d#,d,c,2a#.,4f.,d#,d,c,2a#.,4f.,d#,d,d#,2c,4p,f5,f5,f5,2a#5.,2f.,d#,d,c,2a#.,4f.,d#,d,c,2a#.,4f.,d#,d,d#,2c";
+const char take_on_me[] PROGMEM = "Take On Me:o=5,d=8,b=160,b=160:f#,f#,f#,d,p,b4,p,e,p,e,p,e,g#,g#,a,b,a,a,a,e,p,d,p,f#,p,f#,p,f#,e,e,f#,e,f#,f#,f#,d,p,b4,p,e,p,e,p,e,g#,g#,a,b,a,a,a,e,p,d,p,f#,p,f#,p,f#,e,e5";
+const char simple_signal[] PROGMEM = "Signal:d=16,o=6,b=180:c,p,c,g,p,g,4c7";
+char ringtone[] = simple_signal; 
 
 
 
@@ -112,7 +114,7 @@ void setup() {
   pinMode(ledPin4, OUTPUT);
 
   // Initialise buzzer pin
-  pinMode(buzPin, OUPUT);
+  pinMode(buzzPin, OUPUT);
 
 // Initialising PomodoroCycle Function
 startPomoPeriodMillis = millis();
@@ -125,6 +127,7 @@ void loop() {
   button2();
   button3();  
 }
+// Bell ringing function - Done - Callum
 // multiplexing function 74HC164 - Done - Jackson
 // LED function - Done - Callum - [Have improvements]
 // Pomodoro Cycle - Done - Callum - [Have improvements]
@@ -133,8 +136,11 @@ void loop() {
   // Long break cycle 
 
 
+// git status --> red
+// git add .
+// 
 
-// Bell ringing function
+
 // Bell mute function
 // Changing soundtrack function
 // changing time period
@@ -151,7 +157,16 @@ void onTimerStartUp()
 }
 
 
-void ringTimer()
+void ringTimer(ringtone)
+{
+  static bool ringtoneDone = false;
+  if (!ringtoneDone) {
+    anyrtttl::nonblocking::beginProgMem(BUZZER_PIN, mission_imp);
+    ringtoneDone = true;
+  } else {
+    anyrtttl::nonblocking::play();
+  }  
+}
 
 
 // ledInterval as a bool just so we know if want LEDs blinking or not, since interval won't change.
@@ -164,8 +179,8 @@ void pomodoroCycle(unsigned long workPeriod, unsigned long shortBreakPeriod, uns
       currentPomoPeriodMillis = millis();
       if (currentPomoPeriodMillis - startPomoPeriodMillis >= workPeriod) { // Waiting for work period to end.
         startPomoPeriodMillis = currentPomoPeriodMillis;
-        //--> Ring Buzzer function.
-        pomodoroState cycle = BREAK_1;
+        ringTimer(ringtone);
+        PomodoroState cycle = BREAK_1;
       }
       break;
     case BREAK_1:
@@ -173,8 +188,8 @@ void pomodoroCycle(unsigned long workPeriod, unsigned long shortBreakPeriod, uns
       currentPomoPeriodMillis = millis();
       if (currentPomoPeriodMillis - startPomoPeriodMillis >= shortBreakPeriod) { // Waiting for break period to end.
         startPomoPeriodMillis = currentPomoPeriodMillis;
-        //--> Ring Buzzer function.
-        pomodoroState cycle = WORK_2;
+        ringTimer(ringtone);
+        PomodoroState cycle = WORK_2;
       }
       break;
     case WORK_2:
@@ -182,8 +197,8 @@ void pomodoroCycle(unsigned long workPeriod, unsigned long shortBreakPeriod, uns
       currentPomoPeriodMillis = millis();
       if (currentPomoPeriodMillis - startPomoPeriodMillis >= workPeriod) { // Waiting for work period to end.
         startPomoPeriodMillis = currentPomoPeriodMillis;
-        //--> Ring Buzzer function.
-        pomodoroState cycle = BREAK_2;
+        ringTimer(ringtone);
+        PomodoroState cycle = BREAK_2;
       }
       break;
     case BREAK_2:
@@ -191,8 +206,8 @@ void pomodoroCycle(unsigned long workPeriod, unsigned long shortBreakPeriod, uns
       currentPomoPeriodMillis = millis();
       if (currentPomoPeriodMillis - startPomoPeriodMillis >= shortBreakPeriod) { // Waiting for work period to end.
         startPomoPeriodMillis = currentPomoPeriodMillis;
-        //--> Ring Buzzer function.
-        pomodoroState cycle = WORK_3;
+        ringTimer(ringtone);
+        PomodoroState cycle = WORK_3;
       }
       break;
     case WORK_3:
@@ -200,8 +215,8 @@ void pomodoroCycle(unsigned long workPeriod, unsigned long shortBreakPeriod, uns
       currentPomoPeriodMillis = millis();
       if (currentPomoPeriodMillis - startPomoPeriodMillis >= workPeriod) { // Waiting for work period to end.
         startPomoPeriodMillis = currentPomoPeriodMillis;
-        //--> Ring Buzzer function.
-        pomodoroState cycle = BREAK_3;
+        ringTimer(ringtone);
+        PomodoroState cycle = BREAK_3;
       }
       break;      
     case BREAK_3:
@@ -209,8 +224,8 @@ void pomodoroCycle(unsigned long workPeriod, unsigned long shortBreakPeriod, uns
       currentPomoPeriodMillis = millis();
       if (currentPomoPeriodMillis - startPomoPeriodMillis >= shortBreakPeriod) { // Waiting for work period to end.
         startPomoPeriodMillis = currentPomoPeriodMillis;
-        //--> Ring Buzzer function.
-        pomodoroState cycle = WORK_4;
+        ringTimer(ringtone);
+        PomodoroState cycle = WORK_4;
       }
       break;
     case WORK_4:
@@ -218,8 +233,8 @@ void pomodoroCycle(unsigned long workPeriod, unsigned long shortBreakPeriod, uns
       currentPomoPeriodMillis = millis();
       if (currentPomoPeriodMillis - startPomoPeriodMillis >= workPeriod) { // Waiting for work period to end.
         startPomoPeriodMillis = currentPomoPeriodMillis;
-        //--> Ring Buzzer function.
-        pomodoroState cycle = BREAK_4;
+        ringTimer(ringtone);
+        PomodoroState cycle = BREAK_4;
       }
       break;
     case BREAK_4:
@@ -227,13 +242,14 @@ void pomodoroCycle(unsigned long workPeriod, unsigned long shortBreakPeriod, uns
       currentPomoPeriodMillis = millis();
       if (currentPomoPeriodMillis - startPomoPeriodMillis >= longBreakPeriod) { // Waiting for work period to end.
         startPomoPeriodMillis = currentPomoPeriodMillis;
-        //--> Ring Buzzer function.
-        pomodoroState cycle = WORK_1;
+        ringTimer(ringtone);
+        PomodoroState cycle = WORK_1;
       }
       break;
     default:
     // Pause case?
-    pomodoroState cycle = WORK_1;
+    ringTimer(ringtone);
+    PomodoroState cycle = WORK_1;
 
   }
 
